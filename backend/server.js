@@ -89,10 +89,16 @@ app.get('/auth/callback', async (req, res) => {
     );
     
     spotifyAccessToken = response.data.access_token;
-    res.redirect('http://localhost:3000?auth=success');
+    const redirectUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://thriving-halva-3ab02a.netlify.app/?auth=success'
+      : 'http://localhost:3000?auth=success';
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('Spotify auth error:', error);
-    res.redirect('http://localhost:3000?auth=error');
+    const redirectUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://thriving-halva-3ab02a.netlify.app/?auth=error'
+      : 'http://localhost:3000?auth=error';
+    res.redirect(redirectUrl);
   }
 });
 
@@ -213,26 +219,74 @@ io.on('connection', (socket) => {
   });
 });
 
-// Simulate real-time song updates for MVP
+// Simulate real-time song updates for MVP (only when no real Spotify data)
 const simulateRealTimeUpdates = () => {
-  setInterval(() => {
-    const randomSong = mockSongs[Math.floor(Math.random() * mockSongs.length)];
-    const newSong = {
-      ...randomSong,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      user: `User${Math.floor(Math.random() * 5) + 1}`
-    };
-    
-    recentSongs.push(newSong);
-    
-    // Keep only last 50 songs
-    if (recentSongs.length > 50) {
-      recentSongs = recentSongs.slice(-50);
+  setInterval(async () => {
+    // Only use mock data if no Spotify token available
+    if (!spotifyAccessToken) {
+      const randomSong = mockSongs[Math.floor(Math.random() * mockSongs.length)];
+      const newSong = {
+        ...randomSong,
+        id: Date.now().toString(),
+        timestamp: new Date(),
+        user: `User${Math.floor(Math.random() * 5) + 1}`
+      };
+      
+      recentSongs.push(newSong);
+      
+      // Keep only last 50 songs
+      if (recentSongs.length > 50) {
+        recentSongs = recentSongs.slice(-50);
+      }
+      
+      // Broadcast to all connected clients
+      io.emit('newSong', newSong);
+    } else {
+      // Try to get real Spotify data
+      try {
+        const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: {
+            'Authorization': `Bearer ${spotifyAccessToken}`
+          }
+        });
+
+        if (response.data && response.data.item && response.data.is_playing) {
+          const track = response.data.item;
+          const lyrics = 'Real lyrics would be fetched here';
+          const result = sentiment.analyze(lyrics);
+          let mood = 'neutral';
+          
+          if (result.score > 2) mood = 'happy';
+          else if (result.score < -2) mood = 'sad';
+          else if (result.score < -5) mood = 'angry';
+          else if (result.comparative > 0.5) mood = 'energetic';
+
+          const newSong = {
+            id: track.id + '-' + Date.now(),
+            name: track.name,
+            artist: track.artists[0].name,
+            user: 'You',
+            avatar: '🎧',
+            timestamp: new Date(),
+            mood: mood,
+            lyrics: lyrics
+          };
+          
+          recentSongs.push(newSong);
+          
+          // Keep only last 50 songs
+          if (recentSongs.length > 50) {
+            recentSongs = recentSongs.slice(-50);
+          }
+          
+          // Broadcast real song to all connected clients
+          io.emit('newSong', newSong);
+          console.log(`Real Spotify song: ${track.name} by ${track.artists[0].name}`);
+        }
+      } catch (error) {
+        console.error('Error fetching Spotify data:', error);
+      }
     }
-    
-    // Broadcast to all connected clients
-    io.emit('newSong', newSong);
   }, 15000); // Every 15 seconds
 };
 
