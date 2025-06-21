@@ -1,0 +1,250 @@
+const express = require('express');
+const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
+const axios = require('axios');
+const Sentiment = require('sentiment');
+const cron = require('node-cron');
+require('dotenv').config();
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+const sentiment = new Sentiment();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// In-memory storage for demo purposes
+let recentSongs = [];
+let connectedUsers = [];
+let spotifyAccessToken = null;
+
+// Mock data for MVP
+const mockSongs = [
+  {
+    id: '1',
+    name: 'Blinding Lights',
+    artist: 'The Weeknd',
+    user: 'User1',
+    avatar: '🎵',
+    timestamp: new Date(),
+    mood: 'energetic',
+    lyrics: 'I feel like I am just missing something whenever you are gone'
+  },
+  {
+    id: '2',
+    name: 'drivers license',
+    artist: 'Olivia Rodrigo',
+    user: 'User2',
+    avatar: '🎶',
+    timestamp: new Date(),
+    mood: 'sad',
+    lyrics: 'And you are probably with that blonde girl'
+  },
+  {
+    id: '3',
+    name: 'Good 4 U',
+    artist: 'Olivia Rodrigo',
+    user: 'User3',
+    avatar: '🎤',
+    timestamp: new Date(),
+    mood: 'angry',
+    lyrics: 'Well good for you I guess you moved on really easily'
+  }
+];
+
+// Spotify OAuth endpoints
+app.get('/auth/spotify', (req, res) => {
+  const scopes = 'user-read-currently-playing user-read-playback-state';
+  const authURL = `https://accounts.spotify.com/authorize?response_type=code&client_id=${process.env.SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(process.env.SPOTIFY_REDIRECT_URI)}`;
+  res.redirect(authURL);
+});
+
+app.get('/auth/callback', async (req, res) => {
+  const { code } = req.query;
+  
+  try {
+    const response = await axios.post('https://accounts.spotify.com/api/token', 
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
+        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+    
+    spotifyAccessToken = response.data.access_token;
+    res.redirect('http://localhost:3000?auth=success');
+  } catch (error) {
+    console.error('Spotify auth error:', error);
+    res.redirect('http://localhost:3000?auth=error');
+  }
+});
+
+// API Routes
+app.get('/api/now-playing', async (req, res) => {
+  if (!spotifyAccessToken) {
+    // Return mock data for MVP
+    const randomSong = mockSongs[Math.floor(Math.random() * mockSongs.length)];
+    return res.json({
+      isPlaying: true,
+      track: {
+        name: randomSong.name,
+        artist: randomSong.artist,
+        id: randomSong.id
+      }
+    });
+  }
+
+  try {
+    const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: {
+        'Authorization': `Bearer ${spotifyAccessToken}`
+      }
+    });
+
+    if (response.data && response.data.item) {
+      res.json({
+        isPlaying: response.data.is_playing,
+        track: {
+          name: response.data.item.name,
+          artist: response.data.item.artists[0].name,
+          id: response.data.item.id
+        }
+      });
+    } else {
+      res.json({ isPlaying: false });
+    }
+  } catch (error) {
+    console.error('Spotify API error:', error);
+    res.status(500).json({ error: 'Failed to fetch now playing' });
+  }
+});
+
+app.get('/api/lyrics', async (req, res) => {
+  const { track, artist } = req.query;
+  
+  if (!track || !artist) {
+    return res.status(400).json({ error: 'Track and artist are required' });
+  }
+
+  // For MVP, return mock lyrics or use a simple approach
+  const mockLyricsMap = {
+    'Blinding Lights': 'I feel like I am just missing something whenever you are gone',
+    'drivers license': 'And you are probably with that blonde girl who always made me doubt',
+    'Good 4 U': 'Well good for you I guess you moved on really easily'
+  };
+
+  const lyrics = mockLyricsMap[track] || 'Sample lyrics for mood analysis';
+  res.json({ lyrics });
+});
+
+app.get('/api/mood', (req, res) => {
+  const { lyrics } = req.query;
+  
+  if (!lyrics) {
+    return res.status(400).json({ error: 'Lyrics are required' });
+  }
+
+  const result = sentiment.analyze(lyrics);
+  let mood = 'neutral';
+  
+  if (result.score > 2) {
+    mood = 'happy';
+  } else if (result.score < -2) {
+    mood = 'sad';
+  } else if (result.score < -5) {
+    mood = 'angry';
+  } else if (result.comparative > 0.5) {
+    mood = 'energetic';
+  }
+
+  res.json({ 
+    mood,
+    score: result.score,
+    comparative: result.comparative
+  });
+});
+
+app.get('/api/recent-songs', (req, res) => {
+  res.json(recentSongs.slice(-20)); // Return last 20 songs
+});
+
+app.get('/api/mood-stats', (req, res) => {
+  const now = new Date();
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  
+  const recentMoods = recentSongs.filter(song => 
+    new Date(song.timestamp) > tenMinutesAgo
+  );
+
+  const moodCounts = recentMoods.reduce((acc, song) => {
+    acc[song.mood] = (acc[song.mood] || 0) + 1;
+    return acc;
+  }, {});
+
+  res.json(moodCounts);
+});
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+  
+  // Send recent songs to newly connected client
+  socket.emit('recentSongs', recentSongs);
+  
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Simulate real-time song updates for MVP
+const simulateRealTimeUpdates = () => {
+  setInterval(() => {
+    const randomSong = mockSongs[Math.floor(Math.random() * mockSongs.length)];
+    const newSong = {
+      ...randomSong,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      user: `User${Math.floor(Math.random() * 5) + 1}`
+    };
+    
+    recentSongs.push(newSong);
+    
+    // Keep only last 50 songs
+    if (recentSongs.length > 50) {
+      recentSongs = recentSongs.slice(-50);
+    }
+    
+    // Broadcast to all connected clients
+    io.emit('newSong', newSong);
+  }, 15000); // Every 15 seconds
+};
+
+// Start simulation
+simulateRealTimeUpdates();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date() });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket server ready`);
+}); 

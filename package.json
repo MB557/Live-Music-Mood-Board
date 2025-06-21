@@ -1,0 +1,26 @@
+{
+  "name": "live-music-mood-board",
+  "version": "1.0.0",
+  "description": "A fullstack application that displays live music moods based on Spotify listening activity",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "backend:dev": "cd backend && npm run dev",
+    "frontend:dev": "cd frontend && npm run dev",
+    "backend:install": "cd backend && npm install",
+    "frontend:install": "cd frontend && npm install",
+    "install-all": "npm run backend:install && npm run frontend:install",
+    "build": "npm run backend:build && npm run frontend:build",
+    "backend:build": "cd backend && npm run build",
+    "frontend:build": "cd frontend && npm run build",
+    "start": "concurrently \"npm run backend:start\" \"npm run frontend:start\"",
+    "backend:start": "cd backend && npm start",
+    "frontend:start": "cd frontend && npm start"
+  },
+  "keywords": ["music", "mood", "spotify", "realtime", "nodejs", "nextjs"],
+  "author": "MB557",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
