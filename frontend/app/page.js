@@ -14,7 +14,10 @@ export default function Home() {
 
   useEffect(() => {
     // Initialize WebSocket connection
-    const socketInstance = io('http://localhost:5000');
+    const socketUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://your-backend-api.render.com'
+      : 'http://localhost:5000';
+    const socketInstance = io(socketUrl);
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {
@@ -49,7 +52,10 @@ export default function Home() {
 
   const fetchMoodStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/mood-stats');
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://your-backend-api.render.com/api/mood-stats'
+        : 'http://localhost:5000/api/mood-stats';
+      const response = await fetch(apiUrl);
       const stats = await response.json();
       setMoodStats(stats);
     } catch (error) {
