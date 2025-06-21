@@ -15,7 +15,7 @@ export default function Home() {
   useEffect(() => {
     // Initialize WebSocket connection
     const socketUrl = process.env.NODE_ENV === 'production' 
-      ? process.env.NEXT_PUBLIC_API_URL || 'https://live-music-mood-board-backend.onrender.com'
+      ? process.env.NEXT_PUBLIC_API_URL || 'https://live-music-mood-board.onrender.com'
       : 'http://localhost:5000';
     const socketInstance = io(socketUrl);
     setSocket(socketInstance);
@@ -53,7 +53,7 @@ export default function Home() {
   const fetchMoodStats = async () => {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' 
-        ? process.env.NEXT_PUBLIC_API_URL || 'https://live-music-mood-board-backend.onrender.com'
+        ? process.env.NEXT_PUBLIC_API_URL || 'https://live-music-mood-board.onrender.com'
         : 'http://localhost:5000';
       const response = await fetch(`${apiUrl}/api/mood-stats`);
       const stats = await response.json();
