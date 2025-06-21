@@ -91,6 +91,8 @@ app.get('/auth/callback', async (req, res) => {
     );
     
     spotifyAccessToken = response.data.access_token;
+    console.log('✅ Spotify access token received:', spotifyAccessToken ? 'YES' : 'NO');
+    console.log('🔑 Token length:', spotifyAccessToken ? spotifyAccessToken.length : 0);
     const redirectUrl = process.env.NODE_ENV === 'production' 
       ? 'https://thriving-halva-3ab02a.netlify.app/?auth=success'
       : 'http://localhost:3000?auth=success';
@@ -106,7 +108,10 @@ app.get('/auth/callback', async (req, res) => {
 
 // API Routes
 app.get('/api/now-playing', async (req, res) => {
+  console.log('🎵 /api/now-playing called. Token exists:', !!spotifyAccessToken);
+  
   if (!spotifyAccessToken) {
+    console.log('❌ No Spotify token - returning mock data');
     // Return mock data for MVP
     const randomSong = mockSongs[Math.floor(Math.random() * mockSongs.length)];
     return res.json({
@@ -118,6 +123,8 @@ app.get('/api/now-playing', async (req, res) => {
       }
     });
   }
+  
+  console.log('🔑 Using Spotify token to fetch real data...');
 
   try {
     const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
@@ -127,6 +134,7 @@ app.get('/api/now-playing', async (req, res) => {
     });
 
     if (response.data && response.data.item) {
+      console.log('🎶 Real Spotify data found:', response.data.item.name, 'by', response.data.item.artists[0].name);
       res.json({
         isPlaying: response.data.is_playing,
         track: {
@@ -136,10 +144,11 @@ app.get('/api/now-playing', async (req, res) => {
         }
       });
     } else {
+      console.log('🔇 No music currently playing or no response data');
       res.json({ isPlaying: false });
     }
   } catch (error) {
-    console.error('Spotify API error:', error);
+    console.error('❌ Spotify API error:', error.response?.status, error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch now playing' });
   }
 });
