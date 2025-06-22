@@ -56,14 +56,32 @@ live-music-mood-board/
 └── README.md                  # This file
 ```
 
-## 🚀 Getting Started
+## 🚀 Complete Setup Guide
 
 ### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
-- Spotify Developer Account (for production use)
+- **Node.js 18+** installed
+- **npm** package manager
+- **GitHub account** for code hosting
+- **Spotify account** (free or premium)
+- **Netlify account** (free tier available)
+- **Render account** (free tier available)
 
-### Installation
+### 📋 Step 1: Spotify Developer App Setup
+
+1. **Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)**
+2. **Login** with your Spotify account
+3. **Create a new app**:
+   - **App name**: `Live Music Mood Board`
+   - **App description**: `Real-time music mood tracking application`
+   - **Website**: `https://your-netlify-url.netlify.app` (you'll update this later)
+   - **Redirect URIs**: `https://your-backend-url.onrender.com/auth/callback` (you'll update this later)
+   - **APIs used**: Check "Web API"
+
+4. **Save your credentials**:
+   - **Client ID**: Copy this value
+   - **Client Secret**: Click "View client secret" and copy this value
+
+### 📁 Step 2: Clone and Install
 
 1. **Clone the repository**
    ```bash
@@ -71,36 +89,214 @@ live-music-mood-board/
    cd Live-Music-Mood-Board
    ```
 
-2. **Install dependencies for both frontend and backend**
+2. **Install all dependencies**
    ```bash
+   npm install
    npm run install-all
    ```
 
-3. **Set up environment variables**
-   
-   Copy the example environment file:
+### 🖥️ Step 3: Local Development Setup
+
+1. **Create environment file**
    ```bash
    cp backend/env.example backend/.env
    ```
-   
-   Edit `backend/.env` with your API credentials:
+
+2. **Edit `backend/.env` with your Spotify credentials**:
    ```env
    PORT=5000
-   SPOTIFY_CLIENT_ID=your_spotify_client_id
-   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-   SPOTIFY_REDIRECT_URI=http://localhost:3000/callback
-   GENIUS_ACCESS_TOKEN=your_genius_access_token
+   SPOTIFY_CLIENT_ID=your_actual_client_id_here
+   SPOTIFY_CLIENT_SECRET=your_actual_client_secret_here
+   SPOTIFY_REDIRECT_URI=http://localhost:5000/auth/callback
+   GENIUS_ACCESS_TOKEN=optional_for_lyrics
    NODE_ENV=development
    ```
 
-4. **Run the development servers**
+3. **Run both servers**
    ```bash
    npm run dev
    ```
    
-   This will start:
-   - Backend server on `http://localhost:5000`
-   - Frontend Next.js app on `http://localhost:3000`
+   This starts:
+   - **Backend**: `http://localhost:5000` (Express + WebSocket)
+   - **Frontend**: `http://localhost:3000` (Next.js)
+
+4. **Test local setup**:
+   - Visit `http://localhost:3000` - should show "Connected" status
+   - Visit `http://localhost:5000/auth/spotify` - should redirect to Spotify login
+
+### 🌐 Step 4: Production Deployment
+
+#### 4A. Deploy Frontend to Netlify
+
+1. **Push to GitHub** (if not already done):
+   ```bash
+   git add .
+   git commit -m "Initial setup"
+   git push origin main
+   ```
+
+2. **Deploy to Netlify**:
+   - Go to [netlify.com](https://netlify.com) and login
+   - Click "New site from Git"
+   - Connect your GitHub account
+   - Select repository: `YOUR_USERNAME/Live-Music-Mood-Board`
+   - **Build settings** (auto-configured from `netlify.toml`):
+     - Base directory: `frontend`
+     - Build command: `npm run build`
+     - Publish directory: `out`
+   - Click "Deploy site"
+
+3. **Note your Netlify URL** (e.g., `https://amazing-name-123456.netlify.app`)
+
+#### 4B. Deploy Backend to Render
+
+1. **Go to [render.com](https://render.com)** and sign up
+2. **Create Web Service**:
+   - Click "New" → "Web Service"
+   - Connect your GitHub repository
+   - Select: `YOUR_USERNAME/Live-Music-Mood-Board`
+
+3. **Configure the service**:
+   - **Name**: `live-music-mood-board-backend`
+   - **Root Directory**: `backend`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+
+4. **Add Environment Variables** in Render:
+   ```
+   NODE_ENV=production
+   PORT=10000
+   SPOTIFY_CLIENT_ID=your_actual_client_id_here
+   SPOTIFY_CLIENT_SECRET=your_actual_client_secret_here
+   SPOTIFY_REDIRECT_URI=https://your-render-url.onrender.com/auth/callback
+   ```
+
+5. **Deploy** and note your backend URL (e.g., `https://live-music-mood-board.onrender.com`)
+
+#### 4C. Connect Frontend to Backend
+
+1. **Add environment variable to Netlify**:
+   - Go to Netlify Dashboard → Your site → Site settings → Environment variables
+   - **Add variable**:
+     - **Key**: `NEXT_PUBLIC_API_URL`
+     - **Value**: `https://your-render-backend-url.onrender.com`
+
+2. **Redeploy Netlify site**:
+   - Go to Deploys tab → Trigger deploy → Deploy site
+
+### 🔗 Step 5: Update Spotify App Settings
+
+1. **Go back to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)**
+2. **Edit your app settings**
+3. **Update URLs**:
+   - **Website**: `https://your-netlify-url.netlify.app`
+   - **Redirect URIs**: `https://your-render-backend-url.onrender.com/auth/callback`
+4. **Save changes**
+
+### ✅ Step 6: Test Complete Setup
+
+1. **Visit your Netlify URL**: Should show "Connected" status
+2. **Test Spotify OAuth**:
+   - Visit: `https://your-render-backend-url.onrender.com/auth/spotify`
+   - Login with Spotify and authorize the app
+   - Should redirect back to your Netlify app with `?auth=success`
+3. **Play music on Spotify** (any device)
+4. **Check the live feed**: Your real songs should appear within 15 seconds!
+
+### 🎵 Step 7: Using the App
+
+1. **Authenticate**: Visit the OAuth URL to connect your Spotify
+2. **Play music**: Open Spotify (desktop, mobile, or web) and play any song
+3. **Watch the magic**: Your real music will appear in the live feed with:
+   - 🎧 **User**: "You" 
+   - **Real song names and artists**
+   - **Mood analysis** based on lyrics sentiment
+   - **Real-time updates** every 15 seconds
+
+### 🔧 Development Commands
+
+```bash
+# Install dependencies
+npm run install-all
+
+# Run both servers in development
+npm run dev
+
+# Run servers separately  
+npm run backend:dev    # Backend only
+npm run frontend:dev   # Frontend only
+
+# Build for production
+npm run build
+
+# Start production servers
+npm run start
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### ❌ "Disconnected" Status in Frontend
+**Problem**: WebSocket connection failing
+**Solutions**:
+1. Check backend URL in browser: `https://your-backend-url.onrender.com/health`
+2. Verify CORS settings in backend include your Netlify domain
+3. Ensure backend is deployed and running
+
+#### ❌ Mock Data Instead of Real Spotify Songs
+**Problem**: OAuth not working properly
+**Solutions**:
+1. **Check Spotify redirect URI**: Must be `https://your-backend-url.onrender.com/auth/callback`
+2. **Re-authenticate**: Visit `/auth/spotify` endpoint again
+3. **Check environment variables** in Render dashboard
+4. **Verify Spotify app settings** in developer dashboard
+
+#### ❌ Build Failures on Netlify
+**Problem**: Next.js build errors
+**Solutions**:
+1. Check `netlify.toml` has correct publish directory: `out`
+2. Ensure Next.js config has `output: 'export'`
+3. Check build logs for specific error messages
+
+#### ❌ CORS Errors in Browser Console
+**Problem**: Cross-origin requests blocked
+**Solution**: Update backend CORS settings to include your Netlify domain:
+```javascript
+cors: {
+  origin: ["https://your-netlify-url.netlify.app", "http://localhost:3000"]
+}
+```
+
+### Development Tips
+- **Real-time testing**: Use browser dev tools → Network tab to monitor WebSocket connection
+- **Backend debugging**: Check Render logs for authentication status
+- **Frontend debugging**: Open browser console to see connection status and API calls
+
+## 🚀 Live Demo
+
+**🌟 Try the live application:**
+- **Frontend**: [https://thriving-halva-3ab02a.netlify.app](https://thriving-halva-3ab02a.netlify.app)
+- **Backend API**: [https://live-music-mood-board.onrender.com](https://live-music-mood-board.onrender.com)
+
+**To test with your Spotify:**
+1. Visit the Spotify auth endpoint: [https://live-music-mood-board.onrender.com/auth/spotify](https://live-music-mood-board.onrender.com/auth/spotify)
+2. Log in and authorize the app
+3. Start playing music on any Spotify device
+4. Watch your songs appear in real-time!
+
+## 🎯 Key URLs for Your Deployment
+Once deployed, you'll have these important URLs:
+
+**For Authentication:**
+- OAuth Login: `https://your-backend-url/auth/spotify`
+- Health Check: `https://your-backend-url/health`
+
+**For Users:**
+- Main App: `https://your-netlify-url.netlify.app`
+- Connection Status: Check top-right corner for "Connected/Disconnected"
 
 ## 🎨 API Endpoints
 
@@ -125,28 +321,24 @@ The app uses sentiment analysis to classify songs into five mood categories:
 - **⚡ Energetic**: High comparative sentiment score > 0.5
 - **😐 Neutral**: Sentiment scores between thresholds
 
-## 🌐 Deployment
+## 🌐 Production Deployment Status
 
-### Frontend Deployment (Netlify)
+This application is currently deployed and running:
 
-1. **Connect your GitHub repository to Netlify**
-2. **Configure build settings**:
-   - Base directory: `frontend`
-   - Build command: `npm run build`
-   - Publish directory: `frontend/.next`
+- **Frontend (Netlify)**: ✅ [https://thriving-halva-3ab02a.netlify.app](https://thriving-halva-3ab02a.netlify.app)
+- **Backend (Render)**: ✅ [https://live-music-mood-board.onrender.com](https://live-music-mood-board.onrender.com)
+- **GitHub Repository**: [https://github.com/MB557/Live-Music-Mood-Board](https://github.com/MB557/Live-Music-Mood-Board)
 
-3. **Update API URLs** in the frontend code to point to your deployed backend
+### Architecture
+- **Frontend**: Next.js static site deployed on Netlify with automatic builds from `main` branch
+- **Backend**: Express.js server with WebSocket support deployed on Render
+- **WebSocket**: Real-time communication between frontend and backend
+- **APIs**: Spotify Web API for music data, Genius API for lyrics
 
-### Backend Deployment (Render/Railway/Vercel)
-
-1. **Deploy to Render** (recommended for Node.js):
-   - Connect your GitHub repository
-   - Set root directory to `backend`
-   - Build command: `npm install`
-   - Start command: `npm start`
-   - Add environment variables in the Render dashboard
-
-2. **Update CORS settings** in `backend/server.js` to include your deployed frontend URL
+### Configuration Files
+- `netlify.toml`: Netlify build configuration with `output: 'export'` for static hosting
+- `next.config.js`: Next.js configuration for static export
+- Environment variables configured in respective hosting dashboards
 
 ## 🔧 Configuration
 
@@ -196,10 +388,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🐛 Known Issues
 
+- **Spotify OAuth**: Currently using mock data due to redirect URI misconfiguration. The Spotify Developer App redirect URI needs to point to the backend (`https://live-music-mood-board.onrender.com/auth/callback`) instead of frontend
 - WebSocket connection may timeout on inactive tabs
 - Spotify API rate limits may affect real-time updates
 - Mock data simulation runs every 15 seconds
 - Chart.js responsive design needs refinement on mobile
+
+## ⚡ Quick Start (For Testing)
+
+Want to see it working immediately? 
+1. **Visit**: [https://thriving-halva-3ab02a.netlify.app](https://thriving-halva-3ab02a.netlify.app)
+2. **Check connection**: Top-right should show "Connected"
+3. **Watch mock data**: Songs automatically update every 15 seconds
+4. **For real Spotify data**: Follow the complete setup guide above
 
 ## 📞 Support
 
