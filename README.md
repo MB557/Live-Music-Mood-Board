@@ -402,10 +402,6 @@ Want to see it working immediately?
 3. **Watch mock data**: Songs automatically update every 15 seconds
 4. **For real Spotify data**: Follow the complete setup guide above
 
-## 📞 Support
-
-For support, email support@example.com or open an issue on GitHub.
-
 ## 🙏 Acknowledgments
 
 - [Spotify Web API](https://developer.spotify.com/documentation/web-api/) for music data
@@ -413,7 +409,3 @@ For support, email support@example.com or open an issue on GitHub.
 - [Socket.IO](https://socket.io/) for real-time communication
 - [TailwindCSS](https://tailwindcss.com/) for styling
 - [Next.js](https://nextjs.org/) for the React framework
-
----
-
-Made with ❤️ by [MB557](https://github.com/MB557) 
